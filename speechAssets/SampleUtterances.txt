@@ -1,0 +1,1 @@
+GetBusPredictionIntent when is the next bus arriving
