@@ -1,1 +1,9 @@
 GetBusPredictionIntent when is the next bus arriving
+GetBusPredictionIntent when is the next {Direction} bus arriving
+GetBusPredictionIntent when is the next bus heading {Direction} arriving
+GetBusPredictionIntent when is the next bus going {Direction} arriving
+
+GetBusPredictionIntent how long until the next bus
+GetBusPredictionIntent how long until the next {Direction} bus
+GetBusPredictionIntent how long until the next bus heading {Direction}
+GetBusPredictionIntent how long until the next bus going {Direction}

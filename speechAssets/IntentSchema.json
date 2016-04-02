@@ -1,7 +1,13 @@
 {
   "intents": [
     {
-      "intent": "GetBusPredictionIntent"
+      "intent": "GetBusPredictionIntent",
+      "slots": [
+      	{
+      		"name": "Direction",
+      		"type": "DIRECTION"
+      	}
+      ]
     },
   ]
 }

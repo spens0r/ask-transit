@@ -1,20 +1,13 @@
-"""
-This sample demonstrates a simple skill built with the Amazon Alexa Skills Kit.
-The Intent Schema, Custom Slots, and Sample Utterances for this skill, as well
-as testing instructions are located at http://amzn.to/1LzFrj6
-
-For additional samples, visit the Alexa Skills Kit Getting Started guide at
-http://amzn.to/1LGWsLG
-"""
-
 from __future__ import print_function
+from dateutil import parser
+
+import datetime
+import math
 import requests
 import xml.etree.ElementTree
-import datetime
-from dateutil import parser
-import math
 
 API_KEY = "your key here"
+CTA_BASE_URL = "http://www.ctabustracker.com/bustime/api/v1/"
 
 def lambda_handler(event, context):
     """ Route the incoming request based on type (LaunchRequest, IntentRequest,
@@ -40,8 +33,6 @@ def lambda_handler(event, context):
 
 
 def on_session_started(session_started_request, session):
-    """ Called when the session starts """
-
     print("on_session_started requestId=" + session_started_request['requestId']
           + ", sessionId=" + session['sessionId'])
 
@@ -58,8 +49,6 @@ def on_launch(launch_request, session):
 
 
 def on_intent(intent_request, session):
-    """ Called when the user specifies an intent for this skill """
-
     print("on_intent requestId=" + intent_request['requestId'] +
           ", sessionId=" + session['sessionId'])
 
@@ -88,26 +77,39 @@ def on_session_ended(session_ended_request, session):
 def default_response(intent, session):
     session_attributes = {}
 
-    resp = requests.get("http://www.ctabustracker.com/bustime/api/v1/getpredictions?key=" + API_KEY + "&rt=8&stpid=16050")
-    tree = xml.etree.ElementTree.fromstring(resp.content)
-
-    timeresp = requests.get("http://www.ctabustracker.com/bustime/api/v1/gettime?key=" + API_KEY)
-    now = parser.parse(xml.etree.ElementTree.fromstring(timeresp.content).find("tm").text)
-
-    next_bus = tree.find("prd")
-    next_bus_time = parser.parse(next_bus.find("prdtm").text)
-
-    delta = (next_bus_time - now).total_seconds() / 60
-
-    minutes = str(int(math.floor(delta)))
-
-    speech_output = "The next northbound 8 bus will arrive in " + minutes + " minutes."
-
-    return build_response(session_attributes, build_speechlet_response(speech_output, True))
+    if ('Direction' in intent['slots']) and ('value' in intent['slots']['Direction']):
+        direction = intent['slots']['Direction']['value']
+        minutes = get_prediction(direction)
+        speech_output = "The next " + direction + " 8 bus will arrive in " + minutes + " minutes."
+        return build_response(session_attributes, build_speechlet_response(speech_output, True))
+    else:
+        speech_output = "Which direction are you going?"
+        return build_response(session_attributes, build_speechlet_response(speech_output, False))
 
 
 # --------------- Helpers that build all of the responses ----------------------
 
+def get_prediction(direction):
+    if 'northbound' == direction:
+        stop_id = "16050"
+    elif 'southbound' == direction:
+        stop_id = "17157"
+    else:
+        raise Exception("Invalid Direction")
+
+    resp = cta_request("getpredictions", "&rt=8&stpid=" + stop_id)
+    tree = xml.etree.ElementTree.fromstring(resp.content)
+    next_bus_time = parser.parse(tree.find("prd").find("prdtm").text)
+
+    timeresp = cta_request("gettime")
+    now = parser.parse(xml.etree.ElementTree.fromstring(timeresp.content).find("tm").text)
+
+    delta = (next_bus_time - now).total_seconds() / 60
+    return str(int(math.floor(delta)))
+
+
+def cta_request(action, params=""):
+    return requests.get(CTA_BASE_URL + action + "?key=" + API_KEY + params)
 
 def build_speechlet_response(output, should_end_session):
     return {
